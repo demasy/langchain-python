@@ -1,0 +1,31 @@
+services:
+  # The Ollama model server. Runs the local LLM; no API key or cost.
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      # Persist downloaded models so they are not re-pulled on every run.
+      - ollama_data:/root/.ollama
+    healthcheck:
+      # The app waits until this passes before starting.
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Our LangChain agent, built from the local Dockerfile.
+  app:
+    build: .
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      # Talk to the ollama service by its Compose DNS name, not localhost.
+      - OLLAMA_BASE_URL=http://ollama:11434
+    # Both required for the interactive REPL (reading input from the terminal).
+    stdin_open: true
+    tty: true
+
+volumes:
+  ollama_data:
