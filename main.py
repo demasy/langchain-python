@@ -47,8 +47,13 @@ def calculator(expression: str) -> str:
 
 @tool
 def current_time() -> str:
-    """Return the current local date and time. Use this for 'what time is it'."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    """Return the current date and time. Use this for 'what time is it'.
+
+    Uses the timezone from the TZ environment variable (see docker-compose.yml);
+    the reply includes the timezone name so it is unambiguous.
+    """
+    now = datetime.now().astimezone()
+    return now.strftime("%Y-%m-%d %H:%M:%S %Z")
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +62,7 @@ def current_time() -> str:
 # 'ollama' service; OLLAMA_BASE_URL is set for us in docker-compose.yml.
 # ---------------------------------------------------------------------------
 llm = ChatOllama(
-    model="llama3.2",
+    model=os.environ.get("OLLAMA_MODEL", "llama3.2"),
     base_url=os.environ.get("OLLAMA_BASE_URL", "http://ollama:11434"),
     temperature=0,  # deterministic answers, good for a tutorial
 )
