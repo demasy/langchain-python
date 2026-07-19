@@ -6,4 +6,7 @@
 # Python
 __pycache__/
 *.pyc
+
+# Local environment config (keep .env.example tracked)
+.env
 log.txt
