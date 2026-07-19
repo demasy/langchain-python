@@ -24,6 +24,20 @@ The **only** thing you need installed is **[Docker Desktop](https://www.docker.c
 
 ---
 
+## Configuration
+
+All settings live in a **`.env`** file (model, Ollama URL/port, timezone). A `.env` is included; to customize, copy the template and edit:
+```bash
+cp .env.example .env
+```
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `OLLAMA_MODEL` | `llama3.2` | model the agent uses (must be pulled) |
+| `OLLAMA_BASE_URL` | `http://ollama:11434` | where the app reaches Ollama |
+| `OLLAMA_PORT` | `11434` | host port for the Ollama container |
+| `TZ` | `Asia/Riyadh` | timezone for the `current_time` tool |
+
 ## Run it — step by step
 
 **1. Start the Ollama model server** (in the background):
@@ -49,6 +63,12 @@ you > who wrote Hamlet?         # -> answered directly, no tool
 ```
 
 Type `exit` to quit.
+
+> **Timezone:** the container defaults to **`Asia/Riyadh`**. Override with the
+> `TZ` variable if needed:
+> ```bash
+> TZ=Europe/London docker compose run --rm app
+> ```
 
 **4. Stop everything** when done:
 ```bash
