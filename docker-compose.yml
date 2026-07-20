@@ -1,25 +1,50 @@
+# Compose project name — groups all resources under "langchain-agent".
+name: langchain-agent
+
 services:
   # The Ollama model server. Runs the local LLM; no API key or cost.
   ollama:
     image: ollama/ollama
+    container_name: langchain-ollama
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
       # Persist downloaded models so they are not re-pulled on every run.
       - ollama_data:/root/.ollama
     healthcheck:
-      # The app waits until this passes before starting.
+      # ollama-pull and app wait until this passes before starting.
       test: ["CMD", "ollama", "list"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # Our LangChain agent, built from the local Dockerfile.
-  app:
-    build: .
+  # One-shot init job: pulls the model once the server is healthy, then exits.
+  # This is what lets `docker compose up` set everything up automatically.
+  ollama-pull:
+    image: ollama/ollama
+    container_name: langchain-ollama-pull
     depends_on:
       ollama:
         condition: service_healthy
+    environment:
+      # Point the ollama CLI at the server container instead of localhost.
+      - OLLAMA_HOST=http://ollama:11434
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-llama3.2}"]
+    restart: "no"
+
+  # Our interactive LangChain agent. Behind the "chat" profile so it is NOT
+  # started by `docker compose up`; run it on demand:
+  #   docker compose run --rm app
+  app:
+    build: .
+    container_name: langchain-agent-app
+    profiles: ["chat"]
+    depends_on:
+      # Only start once the model has been pulled successfully.
+      ollama-pull:
+        condition: service_completed_successfully
     # All values come from the .env file (see .env.example).
     environment:
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2}
