@@ -40,17 +40,13 @@ cp .env.example .env
 
 ## Run it — step by step
 
-**1. Start the Ollama model server** (in the background):
+**1. Start the backend** (Ollama server **+ automatic model pull**):
 ```bash
-docker compose up -d ollama
+docker compose up -d
 ```
+This starts `langchain-ollama` and runs the one-shot `langchain-ollama-pull` job, which downloads the model and then exits `0` (that's expected). The first run downloads ~2 GB; afterward the model is cached in a volume.
 
-**2. Pull the model into the Ollama container** (one time — it's cached afterward):
-```bash
-docker compose exec ollama ollama pull llama3.2
-```
-
-**3. Build and start the agent** (interactive chat):
+**2. Build and start the agent** (interactive chat):
 ```bash
 docker compose run --rm app
 ```
@@ -70,22 +66,23 @@ Type `exit` to quit.
 > TZ=Europe/London docker compose run --rm app
 > ```
 
-**4. Stop everything** when done:
+**3. Stop everything** when done:
 ```bash
 docker compose down
 ```
-The downloaded model stays in the `ollama_data` volume, so next time you can skip step 2.
+The downloaded model stays in the `ollama_data` volume, so the next `docker compose up` is fast.
 
 ---
 
 ## How it works
 
-Two containers, defined in [`docker-compose.yml`](docker-compose.yml):
+Three containers, defined in [`docker-compose.yml`](docker-compose.yml) (project `langchain-agent`):
 
-| Service  | What it is | Role |
-|----------|------------|------|
-| `ollama` | official `ollama/ollama` image | serves the local LLM on port `11434`, caches models in a volume |
-| `app`    | built from our [`Dockerfile`](Dockerfile) | runs [`main.py`](main.py), talks to `ollama` at `http://ollama:11434` |
+| Service | Container name | Role |
+|---------|----------------|------|
+| `ollama` | `langchain-ollama` | official `ollama/ollama` image — serves the local LLM on port `11434`, caches models in a volume |
+| `ollama-pull` | `langchain-ollama-pull` | one-shot job — pulls the model once Ollama is healthy, then exits |
+| `app` | `langchain-agent-app` | built from our [`Dockerfile`](Dockerfile) — runs [`main.py`](main.py); behind the `chat` profile, started on demand |
 
 The agent code in [`main.py`](main.py) follows four numbered steps:
 
